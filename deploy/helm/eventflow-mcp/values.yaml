@@ -1,0 +1,90 @@
+replicaCount: 2
+
+image:
+  repository: ghcr.io/your-org/eventflow-mcp
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1654
+  runAsGroup: 1654
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: eventflow.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# A non-empty API key is required unless an existing Kubernetes Secret is supplied.
+# Clients may send it in X-MCP-API-Key or Authorization: Bearer <key>.
+mcp:
+  apiKey: ""
+  existingSecret: ""
+  existingSecretKey: api-key
+
+operations:
+  # InMemory is a safe local/demo fixture. ServiceControl enables the built-in,
+  # version-pinned read-only ServiceControl HTTP adapter.
+  provider: InMemory
+  serviceControl:
+    apiBaseUrl: "http://servicecontrol:33333/api/"
+    pageSize: 100
+    existingSecret: ""
+    existingSecretKey: bearer-token
+
+rag:
+  provider: InMemory
+  http:
+    endpoint: "http://rag-service"
+    searchPath: "/rag/search"
+    existingSecret: ""
+    existingSecretKey: api-key
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

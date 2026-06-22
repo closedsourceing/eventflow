@@ -1,0 +1,147 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - id: version
+        name: Derive package version
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "value=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore
+        run: dotnet restore EventFlowMcp.sln
+
+      - name: Build
+        run: dotnet build EventFlowMcp.sln --configuration Release --no-restore
+
+      - name: Pack NuGet tool
+        run: |
+          dotnet pack src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj \
+            --configuration Release \
+            --no-build \
+            -p:PackageVersion=${{ steps.version.outputs.value }} \
+            --output artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+
+  publish-docker:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - name: Verify Docker Hub credentials are configured
+        shell: bash
+        run: |
+          test -n "$DOCKERHUB_USERNAME" || (echo "Missing DOCKERHUB_USERNAME secret." && exit 1)
+          test -n "$DOCKERHUB_TOKEN" || (echo "Missing DOCKERHUB_TOKEN secret." && exit 1)
+
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/eventflow-mcp:${{ github.ref_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/eventflow-mcp:latest
+
+  publish-nuget:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    steps:
+      - name: Verify NuGet API key is configured
+        shell: bash
+        run: test -n "$NUGET_API_KEY" || (echo "Missing NUGET_API_KEY secret." && exit 1)
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts
+
+      - name: Publish NuGet tool package
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  deploy-kubernetes:
+    needs: [build, publish-docker]
+    if: vars.KUBERNETES_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      KUBERNETES_NAMESPACE: ${{ vars.KUBERNETES_NAMESPACE }}
+      KUBERNETES_RELEASE_NAME: ${{ vars.KUBERNETES_RELEASE_NAME }}
+      EVENTFLOW_MCP_SECRET_NAME: ${{ vars.EVENTFLOW_MCP_SECRET_NAME }}
+      SERVICECONTROL_API_BASE_URL: ${{ vars.SERVICECONTROL_API_BASE_URL }}
+    steps:
+      - name: Verify Kubernetes deployment configuration
+        shell: bash
+        run: |
+          test -n "$KUBE_CONFIG_DATA" || (echo "Missing KUBE_CONFIG_DATA secret." && exit 1)
+          test -n "$DOCKERHUB_USERNAME" || (echo "Missing DOCKERHUB_USERNAME secret." && exit 1)
+          test -n "$KUBERNETES_NAMESPACE" || (echo "Missing KUBERNETES_NAMESPACE variable." && exit 1)
+          test -n "$KUBERNETES_RELEASE_NAME" || (echo "Missing KUBERNETES_RELEASE_NAME variable." && exit 1)
+          test -n "$EVENTFLOW_MCP_SECRET_NAME" || (echo "Missing EVENTFLOW_MCP_SECRET_NAME variable." && exit 1)
+          test -n "$SERVICECONTROL_API_BASE_URL" || (echo "Missing SERVICECONTROL_API_BASE_URL variable." && exit 1)
+
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Configure kubeconfig
+        shell: bash
+        run: |
+          printf '%s' "$KUBE_CONFIG_DATA" | base64 --decode > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Deploy the versioned image with Helm
+        run: |
+          helm upgrade --install "$KUBERNETES_RELEASE_NAME" ./deploy/helm/eventflow-mcp \
+            --namespace "$KUBERNETES_NAMESPACE" \
+            --create-namespace \
+            --set image.repository="$DOCKERHUB_USERNAME/eventflow-mcp" \
+            --set image.tag="${{ github.ref_name }}" \
+            --set mcp.existingSecret="$EVENTFLOW_MCP_SECRET_NAME" \
+            --set operations.provider=ServiceControl \
+            --set operations.serviceControl.apiBaseUrl="$SERVICECONTROL_API_BASE_URL" \
+            --wait \
+            --timeout 5m

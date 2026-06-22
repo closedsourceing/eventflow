@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>eventflow-mcp</ToolCommandName>
+    <PackageId>EventFlowMcp.Tool</PackageId>
+    <Version>0.2.0</Version>
+    <Authors>Igor Vuleta</Authors>
+    <Description>Local stdio MCP server for NServiceBus message tracing, saga inspection, and architecture guidance.</Description>
+    <PackageTags>mcp;nservicebus;dotnet;rag;distributed-systems;architecture</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="1.4.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.7" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EventFlowMcp.Core\EventFlowMcp.Core.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.Rag.Http\EventFlowMcp.Rag.Http.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.ServiceControl.Http\EventFlowMcp.ServiceControl.Http.csproj" />
+  </ItemGroup>
+</Project>

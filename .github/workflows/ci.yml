@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - uses: azure/setup-helm@v4
+
+      - name: Restore
+        run: dotnet restore EventFlowMcp.sln
+
+      - name: Build
+        run: dotnet build EventFlowMcp.sln --configuration Release --no-restore
+
+      - name: Pack the local MCP tool
+        run: dotnet pack src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj --configuration Release --no-build --output artifacts
+
+      - name: Validate Helm chart
+        run: |
+          helm lint deploy/helm/eventflow-mcp --set mcp.apiKey=ci-only-key
+          helm template eventflow deploy/helm/eventflow-mcp \
+            --set image.repository=example/eventflow-mcp \
+            --set mcp.apiKey=ci-only-key > /tmp/eventflow-mcp.yaml
+
+      - name: Validate Docker image build
+        run: docker build --tag eventflow-mcp:ci .

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: eventflow-mcp
+description: Read-only MCP server for NServiceBus message tracing, saga inspection, and architecture guidance
+type: application
+version: 0.2.0
+appVersion: "0.2.0"

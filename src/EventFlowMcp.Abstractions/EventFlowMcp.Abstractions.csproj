@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Description>Abstractions for EventFlow MCP operations tracing, saga inspection, and pluggable RAG providers.</Description>
+  </PropertyGroup>
+</Project>

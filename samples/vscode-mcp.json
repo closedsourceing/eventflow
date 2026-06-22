@@ -1,0 +1,31 @@
+{
+  "servers": {
+    "eventflow-local": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj",
+        "--",
+        "Operations:Provider=InMemory",
+        "Rag:Provider=InMemory"
+      ]
+    },
+    "eventflow-http": {
+      "type": "http",
+      "url": "http://localhost:3001/mcp",
+      "headers": {
+        "X-MCP-API-Key": "${input:eventflowMcpApiKey}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "id": "eventflowMcpApiKey",
+      "type": "promptString",
+      "description": "EventFlow MCP API key",
+      "password": true
+    }
+  ]
+}

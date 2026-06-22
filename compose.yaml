@@ -1,0 +1,20 @@
+services:
+  eventflow-mcp:
+    build:
+      context: .
+    image: eventflow-mcp:local
+    ports:
+      - "3001:8080"
+    environment:
+      Mcp__ApiKey: ${EVENTFLOW_MCP_API_KEY:?Set EVENTFLOW_MCP_API_KEY before starting the shared server}
+      Operations__Provider: ${EVENTFLOW_OPERATIONS_PROVIDER:-InMemory}
+      Operations__ServiceControl__ApiBaseUrl: ${EVENTFLOW_SERVICECONTROL_API_BASE_URL:-http://host.docker.internal:33333/api/}
+      Operations__ServiceControl__BearerToken: ${EVENTFLOW_SERVICECONTROL_BEARER_TOKEN:-}
+      Operations__ServiceControl__PageSize: "100"
+      Rag__Provider: InMemory
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

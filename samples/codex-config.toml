@@ -1,0 +1,7 @@
+[mcp_servers.eventflow-local]
+command = "dotnet"
+args = ["run", "--project", "src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj", "--", "Operations:Provider=InMemory", "Rag:Provider=InMemory"]
+
+[mcp_servers.eventflow-http]
+url = "http://localhost:3001/mcp"
+bearer_token_env_var = "EVENTFLOW_MCP_API_KEY"

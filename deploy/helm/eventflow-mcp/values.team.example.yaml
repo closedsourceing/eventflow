@@ -1,0 +1,33 @@
+image:
+  repository: ghcr.io/acme/eventflow-mcp
+  tag: "0.2.0"
+
+# Create this secret outside Helm so the key does not enter Helm release history:
+# kubectl -n platform create secret generic eventflow-mcp-auth --from-literal=api-key='replace-me'
+mcp:
+  existingSecret: eventflow-mcp-auth
+  existingSecretKey: api-key
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: eventflow-mcp.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: eventflow-mcp-tls
+      hosts:
+        - eventflow-mcp.example.com
+
+operations:
+  provider: ServiceControl
+  serviceControl:
+    apiBaseUrl: http://servicecontrol.platform.svc.cluster.local:33333/api/
+    pageSize: 100
+    # Optional: use this only when ServiceControl is protected by an upstream bearer-token gateway.
+    # existingSecret: servicecontrol-reader
+    # existingSecretKey: bearer-token

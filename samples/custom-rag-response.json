@@ -1,0 +1,13 @@
+[
+  {
+    "id": "adr-123",
+    "source": "Confluence",
+    "title": "RabbitMQ retry strategy",
+    "text": "Consumers must be idempotent. Transient failures use exponential backoff. Poison messages go to the error queue.",
+    "score": 0.91,
+    "metadata": {
+      "system": "billing",
+      "tags": "rabbitmq,retry,idempotency"
+    }
+  }
+]

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Description>HTTP MCP server for shared team usage of EventFlow MCP.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.4.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EventFlowMcp.Core\EventFlowMcp.Core.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.Rag.Http\EventFlowMcp.Rag.Http.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.ServiceControl.Http\EventFlowMcp.ServiceControl.Http.csproj" />
+  </ItemGroup>
+</Project>
