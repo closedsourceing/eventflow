@@ -1,0 +1,8 @@
+[
+  {
+    "id": "audit-001",
+    "message_id": "message-001",
+    "message_type": "Company.Contracts.SubmitOrder",
+    "conversation_id": "order-10042"
+  }
+]

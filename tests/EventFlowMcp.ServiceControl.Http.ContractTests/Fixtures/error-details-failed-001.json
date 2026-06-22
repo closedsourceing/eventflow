@@ -1,0 +1,22 @@
+{
+  "id": "failed-001",
+  "processing_attempts": [
+    {
+      "failure_details": {
+        "address_of_failing_endpoint": "Sales.Endpoint",
+        "time_of_failure": "2026-06-20T10:05:00Z",
+        "exception": {
+          "exception_type": "System.TimeoutException",
+          "message": "Order processing timed out after 30 seconds."
+        }
+      },
+      "attempted_at": "2026-06-20T10:04:58Z",
+      "message_id": "message-001",
+      "body": "{\"OrderId\":\"order-10042\"}",
+      "headers": {
+        "NServiceBus.ConversationId": "order-10042",
+        "Authorization": "secret-token"
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "failed-001",
+    "message_type": "Company.Contracts.SubmitOrder",
+    "exception": {
+      "exception_type": "System.TimeoutException",
+      "message": "Order processing timed out after 30 seconds."
+    },
+    "message_id": "message-001",
+    "receiving_endpoint": { "name": "Sales.Endpoint" },
+    "time_of_failure": "2026-06-20T10:05:00Z"
+  },
+  {
+    "id": "failed-002",
+    "message_type": "Company.Contracts.InvoiceOrder",
+    "exception": {
+      "exception_type": "System.InvalidOperationException",
+      "message": "Invoice already exists."
+    },
+    "message_id": "message-003",
+    "receiving_endpoint": { "name": "Billing.Endpoint" },
+    "time_of_failure": "2026-06-20T10:07:00Z"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Sales.Endpoint",
+    "host_display_name": "sales-host-01",
+    "monitor_heartbeat": true,
+    "is_sending_heartbeats": true,
+    "heartbeat_information": { "last_report_at": "2026-06-20T10:04:00Z" }
+  },
+  {
+    "name": "Billing.Endpoint",
+    "host_display_name": "billing-host-01",
+    "monitor_heartbeat": true,
+    "is_sending_heartbeats": false,
+    "heartbeat_information": { "last_report_at": "2026-06-20T09:30:00Z" }
+  }
+]

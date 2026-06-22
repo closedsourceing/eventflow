@@ -229,6 +229,16 @@ It reads `errors`, `endpoints`, `conversations/{id}`, and `sagas/{id}` only. Ser
 
 Do not access ServiceControl’s embedded RavenDB directly. Keep EventFlow read-only until it has authorization, environment scoping, audit logging, PII controls, and human approval for any mutation.
 
+### ServiceControl contract tests
+
+The checked-in contract suite verifies the HTTP paths and response shapes that the adapter supports. Run it with:
+
+```bash
+dotnet test EventFlowMcp.sln --configuration Release
+```
+
+Before enabling a live environment, replace or extend the sanitized fixtures in `tests/EventFlowMcp.ServiceControl.Http.ContractTests/Fixtures` with responses captured from that exact ServiceControl version and upstream authentication setup. Do not commit production message bodies, headers, or personally identifiable data.
+
 ## RAG
 
 `Rag:Provider=InMemory` enables the local sample knowledge. To use an internal RAG endpoint, set `Rag:Provider=Http` and configure `Rag:Http`:
@@ -251,4 +261,4 @@ The request is a `RagSearchRequest`; the response is a JSON array of `RagResult`
 
 ## Production readiness checkpoint
 
-Add contract tests against captured responses from the exact ServiceControl deployment and authentication model used by your team. That makes the adapter dependable for a live environment without changing the MCP tools clients already rely on.
+Run the ServiceControl contract suite with sanitized responses from the exact ServiceControl deployment and authentication model used by your team. Then prove the Docker and Helm deployments with a non-production ServiceControl instance before creating a release tag.

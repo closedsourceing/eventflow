@@ -1,0 +1,32 @@
+[
+  {
+    "id": "audit-001",
+    "message_id": "message-001",
+    "message_type": "Company.Contracts.SubmitOrder",
+    "sending_endpoint": { "name": "Web.Api" },
+    "receiving_endpoint": { "name": "Sales.Endpoint" },
+    "time_sent": "2026-06-20T10:00:00Z",
+    "processed_at": "2026-06-20T10:00:01Z",
+    "conversation_id": "order-10042",
+    "headers": { "NServiceBus.MessageId": "message-001" },
+    "status": 3,
+    "message_intent": "Send",
+    "invoked_sagas": [
+      { "saga_id": "c21f3b2c-567c-4a12-b3aa-6eb8170ca5bb" }
+    ]
+  },
+  {
+    "id": "audit-002",
+    "message_id": "message-002",
+    "message_type": "Company.Contracts.OrderAccepted",
+    "sending_endpoint": { "name": "Sales.Endpoint" },
+    "receiving_endpoint": { "name": "Billing.Endpoint" },
+    "time_sent": "2026-06-20T10:00:02Z",
+    "processed_at": "2026-06-20T10:00:03Z",
+    "conversation_id": "order-10042",
+    "headers": { "NServiceBus.RelatedTo": "message-001" },
+    "status": "successful",
+    "message_intent": "Publish",
+    "originates_from_saga": { "saga_id": "c21f3b2c-567c-4a12-b3aa-6eb8170ca5bb" }
+  }
+]

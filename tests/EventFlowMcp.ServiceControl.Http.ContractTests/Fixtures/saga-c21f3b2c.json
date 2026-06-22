@@ -1,0 +1,37 @@
+{
+  "saga_id": "c21f3b2c-567c-4a12-b3aa-6eb8170ca5bb",
+  "saga_type": "Payments.PaymentCollectionSaga",
+  "changes": [
+    {
+      "start_time": "2026-06-20T10:00:01Z",
+      "finish_time": "2026-06-20T10:00:02Z",
+      "status": 0,
+      "state_after_change": "{\"OrderId\":\"order-10042\",\"PaymentId\":\"pay-42\"}",
+      "initiating_message": {
+        "message_id": "message-001",
+        "message_type": "Company.Contracts.SubmitOrder"
+      },
+      "outgoing_messages": [
+        {
+          "message_id": "message-002",
+          "message_type": "Company.Contracts.OrderAccepted",
+          "time_sent": "2026-06-20T10:00:02Z",
+          "destination": "Billing.Endpoint"
+        }
+      ],
+      "endpoint": "Sales.Endpoint"
+    },
+    {
+      "start_time": "2026-06-20T10:05:00Z",
+      "finish_time": "2026-06-20T10:05:01Z",
+      "status": 2,
+      "state_after_change": "{\"OrderId\":\"order-10042\",\"PaymentId\":\"pay-42\",\"Completed\":true}",
+      "initiating_message": {
+        "message_id": "message-003",
+        "message_type": "Company.Contracts.PaymentCaptured"
+      },
+      "outgoing_messages": [],
+      "endpoint": "Billing.Endpoint"
+    }
+  ]
+}

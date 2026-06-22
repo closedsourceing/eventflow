@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventFlowMcp.Tool", "src\Ev
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventFlowMcp.Server", "src\EventFlowMcp.Server\EventFlowMcp.Server.csproj", "{AE7FBDF8-BB2A-4C44-80E8-449E1B9E23C9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventFlowMcp.ServiceControl.Http.ContractTests", "tests\EventFlowMcp.ServiceControl.Http.ContractTests\EventFlowMcp.ServiceControl.Http.ContractTests.csproj", "{B6B7220A-59A3-474C-A926-B7E06C44B615}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +46,10 @@ Global
 		{AE7FBDF8-BB2A-4C44-80E8-449E1B9E23C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE7FBDF8-BB2A-4C44-80E8-449E1B9E23C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE7FBDF8-BB2A-4C44-80E8-449E1B9E23C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6B7220A-59A3-474C-A926-B7E06C44B615}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6B7220A-59A3-474C-A926-B7E06C44B615}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6B7220A-59A3-474C-A926-B7E06C44B615}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6B7220A-59A3-474C-A926-B7E06C44B615}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
