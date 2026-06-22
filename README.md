@@ -231,7 +231,7 @@ Do not access ServiceControl’s embedded RavenDB directly. Keep EventFlow read-
 
 ### ServiceControl contract tests
 
-The checked-in contract suite verifies the HTTP paths and response shapes that the adapter supports. Run it with:
+The checked-in suite verifies the HTTP paths and response shapes that the adapter supports. It includes both fixture-level contract tests and an in-process ServiceControl-style test API for real `HttpClient` integration tests. The API exposes representative `errors`, `endpoints`, `conversations`, and `sagas` routes and is shut down automatically after the tests finish. Run the suite with:
 
 ```bash
 dotnet test EventFlowMcp.sln --configuration Release
