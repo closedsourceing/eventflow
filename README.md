@@ -1,6 +1,6 @@
 # EventFlow MCP
 
-EventFlow MCP is a read-only MCP server for developers debugging and designing NServiceBus systems with AI. It turns operational message and saga data into tools that Codex, Claude Code, and GitHub Copilot can use safely.
+EventFlow MCP is a read-only MCP server for developers debugging and designing NServiceBus systems with AI. It turns operational message and saga data into safe tools for Codex, Claude Code, and GitHub Copilot.
 
 The intended developer question is not merely “what failed?” but “why is order `10042` stuck, which saga owns it, and what is the safe next step?”
 
@@ -28,7 +28,13 @@ MCP client (Codex / Claude / Copilot)
   local fixture | ServiceControl adapter | queue/projection adapter
 ```
 
-`INServiceBusOperationsReader` is the stable EventFlow contract for message traces, failed messages, endpoint health, and sagas. This keeps MCP tools independent of any one data store or ServiceControl release.
+The design intentionally keeps three concerns apart:
+
+- MCP tools orchestrate a developer question; they do not know where operations data lives.
+- `INServiceBusOperationsReader` is the stable contract for traces, failures, endpoint health, and sagas.
+- Provider adapters translate external APIs into that contract; response formatting and secret redaction stay in the core MCP layer.
+
+This lets a team change from the local fixture to ServiceControl or an internal projection without changing the tools an AI client calls.
 
 ServiceControl supplies the required operational data when endpoints have auditing, heartbeats/monitoring, and `NServiceBus.SagaAudit` enabled. EventFlow includes a read-only HTTP adapter for the ServiceControl routes used by ServicePulse—failed messages, endpoints, conversations, and saga history. That HTTP API is intended for ServicePulse and may change, so pin, test, and upgrade this adapter against the exact ServiceControl version your team runs. ServiceControl remains the external source of truth; EventFlow never writes to it.
 
@@ -49,7 +55,17 @@ deploy/
 samples/                      # MCP client configuration examples
 ```
 
-## Run locally with stdio
+## Choose a run mode
+
+| Need | Run mode | Operations provider |
+|---|---|---|
+| Explore the tools or develop locally | stdio MCP tool | `InMemory` |
+| Let a team use a shared MCP endpoint | Docker or Kubernetes server | `InMemory`, ServiceControl, or a custom reader |
+| Debug a live NServiceBus environment | Shared server close to ServiceControl | `ServiceControl` after contract testing |
+
+Start with `InMemory`. Use ServiceControl only after verifying its API version, authentication path, retention, and auditing settings in the target environment.
+
+## Quick start: local stdio MCP
 
 Requirements: .NET 8 SDK and an MCP-capable client.
 
@@ -79,7 +95,7 @@ Explain failed-001. Is it safe to retry?
 Review this saga for correlation and duplicate-delivery risks: <paste code>
 ```
 
-## Run a shared server locally or for a team with Docker
+## Shared server with Docker
 
 The shared server exposes MCP at `http://localhost:3001/mcp` and health at `http://localhost:3001/healthz`.
 
@@ -183,7 +199,7 @@ When enabling it, also define these repository **variables**:
 
 `EVENTFLOW_MCP_SECRET_NAME` must already exist in the target namespace and contain an `api-key` value. Give the kubeconfig only the permissions needed for the EventFlow namespace.
 
-## Plugging in real NServiceBus data
+## Connect real NServiceBus data
 
 The production integration belongs behind this interface:
 
@@ -205,7 +221,7 @@ dotnet run --project src/EventFlowMcp.Server/EventFlowMcp.Server.csproj -- \
   Mcp:ApiKey=use-a-long-random-value
 ```
 
-It reads `errors`, `endpoints`, `conversations/{id}`, and `sagas/{id}` only. ServiceControl has no global saga-search API, so EventFlow resolves sagas from a traced conversation and requires a correlation value for saga discovery. Recommended alternatives when you need more control or long retention are:
+It reads `errors`, `endpoints`, `conversations/{id}`, and `sagas/{id}` only. ServiceControl has no global saga-search API, so EventFlow resolves sagas from a traced conversation and requires a correlation value for saga discovery. When you need global saga search, richer correlations, or longer retention, use one of these readers instead:
 
 1. A consumer of ServiceControl’s forwarded audit/error log queues that writes a minimal EventFlow read model.
 2. An adapter over an existing internal observability projection.
@@ -233,6 +249,6 @@ Do not access ServiceControl’s embedded RavenDB directly. Keep EventFlow read-
 
 The request is a `RagSearchRequest`; the response is a JSON array of `RagResult` records.
 
-## Next meaningful implementation step
+## Production readiness checkpoint
 
-Add contract tests against the exact ServiceControl deployment and authentication model used by your team. That turns the included adapter into a dependable evidence-backed assistant for a live NServiceBus environment without changing the MCP tools clients already rely on.
+Add contract tests against captured responses from the exact ServiceControl deployment and authentication model used by your team. That makes the adapter dependable for a live environment without changing the MCP tools clients already rely on.

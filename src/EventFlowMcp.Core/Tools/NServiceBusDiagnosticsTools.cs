@@ -31,7 +31,7 @@ public sealed class NServiceBusOperationsTools
                 await operations.GetFailedMessageByIdAsync(message.Id, cancellationToken) ?? message));
         }
 
-        return string.Join("\n\n---\n\n", messages.Select(message => FormatFailedMessage(message, includeBodyPreview)));
+        return string.Join("\n\n---\n\n", messages.Select(message => OperationsTextFormatter.FailedMessage(message, includeBodyPreview)));
     }
 
     [McpServerTool]
@@ -45,8 +45,7 @@ public sealed class NServiceBusOperationsTools
         if (endpoints.Count == 0)
             return "No endpoint health data found.";
 
-        return string.Join("\n", endpoints.Select(x =>
-            $"- {x.Endpoint}: {x.Status}, failed messages: {x.FailedMessages}, last heartbeat: {x.LastHeartbeatAt:u}, avg processing: {x.ProcessingTimeMs?.ToString("0") ?? "n/a"} ms, notes: {x.Notes ?? "n/a"}"));
+        return string.Join("\n", endpoints.Select(OperationsTextFormatter.EndpointHealth));
     }
 
     [McpServerTool]
@@ -66,7 +65,7 @@ public sealed class NServiceBusOperationsTools
 
         var activities = string.Join("\n", trace.Activities
             .OrderBy(activity => activity.OccurredAt)
-            .Select(FormatActivity));
+            .Select(OperationsTextFormatter.Activity));
 
         return $"""
         Business-process trace
@@ -100,7 +99,7 @@ public sealed class NServiceBusOperationsTools
         if (sagas.Count == 0)
             return "No saga instances matched the supplied filters.";
 
-        return string.Join("\n\n---\n\n", sagas.Select(FormatSagaSummary));
+        return string.Join("\n\n---\n\n", sagas.Select(OperationsTextFormatter.SagaSummary));
     }
 
     [McpServerTool]
@@ -117,10 +116,10 @@ public sealed class NServiceBusOperationsTools
 
         var transitions = string.Join("\n", saga.Transitions
             .OrderBy(transition => transition.OccurredAt)
-            .Select(transition => $"- {transition.OccurredAt:u} [{transition.Action}] {transition.MessageType} ({transition.MessageId}){FormatNotes(transition.Notes)}"));
+            .Select(OperationsTextFormatter.SagaTransition));
 
         var state = includeState
-            ? FormatDictionary(saga.State)
+            ? OperationsTextFormatter.Dictionary(saga.State)
             : "Omitted by default. Set includeState=true only when authorized to view saga business data.";
 
         return $"""
@@ -167,13 +166,13 @@ public sealed class NServiceBusOperationsTools
         return $"""
         Failed message explanation
 
-        {FormatFailedMessage(message, includeBodyPreview)}
+        {OperationsTextFormatter.FailedMessage(message, includeBodyPreview)}
 
         Likely cause:
         {likelyCause}
 
         Conversation context:
-        {FormatTraceContext(trace)}
+        {OperationsTextFormatter.TraceContext(trace)}
 
         Safe next steps:
         1. Verify whether the failure is transient or deterministic.
@@ -183,87 +182,6 @@ public sealed class NServiceBusOperationsTools
         5. If the root cause is fixed and handler is idempotent, retry from ServiceControl manually.
         """;
     }
-
-    private static string FormatFailedMessage(FailedMessage message, bool includeBodyPreview)
-    {
-        var headers = FormatHeaders(message.Headers);
-        var bodyPreview = includeBodyPreview
-            ? message.BodyPreview ?? "n/a"
-            : "Omitted by default. Set includeBodyPreview=true only when authorized to view business data.";
-
-        return $"""
-        Id: {message.Id}
-        Message id: {message.MessageId}
-        Conversation id: {message.ConversationId}
-        Endpoint: {message.Endpoint}
-        Message type: {message.MessageType}
-        Exception: {message.ExceptionType}
-        Message: {message.ExceptionMessage}
-        Failed at: {message.FailedAt:u}
-        Headers:
-        {headers}
-        Body preview:
-        {bodyPreview}
-        """;
-    }
-
-    private static string FormatActivity(MessageActivity activity)
-    {
-        var relationship = activity.RelatedToMessageId is null ? string.Empty : $" ← {activity.RelatedToMessageId}";
-        var saga = activity.SagaInstanceId is null ? string.Empty : $"; saga={activity.SagaInstanceId}";
-        var failure = activity.FailureId is null ? string.Empty : $"; failure={activity.FailureId}";
-        return $"- {activity.OccurredAt:u} [{activity.Status}] {activity.Intent} {activity.MessageType}: {activity.SendingEndpoint ?? "external"} → {activity.ReceivingEndpoint} ({activity.MessageId}){relationship}{saga}{failure}";
-    }
-
-    private static string FormatSagaSummary(SagaInstance saga)
-        => $"""
-           Id: {saga.Id}
-           Type: {saga.SagaType}
-           Correlation: {saga.CorrelationProperty}={saga.CorrelationValue}
-           Status: {saga.Status}
-           Started: {saga.StartedAt:u}
-           Last updated: {saga.LastUpdatedAt:u}
-           """;
-
-    private static string FormatTraceContext(MessageTrace? trace)
-    {
-        if (trace is null)
-            return "No corresponding message trace was available from the configured operations source.";
-
-        var failedActivities = trace.Activities.Count(activity => activity.Status == MessageProcessingStatus.Failed);
-        var activeSagas = trace.Activities
-            .Where(activity => !string.IsNullOrWhiteSpace(activity.SagaInstanceId))
-            .Select(activity => activity.SagaInstanceId)
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-
-        return $"Conversation {trace.ConversationId}: {trace.Activities.Count} activities, {failedActivities} failed; saga instances: {string.Join(", ", activeSagas)}. {trace.Summary}";
-    }
-
-    private static string FormatHeaders(IReadOnlyDictionary<string, string>? headers)
-    {
-        if (headers is null || headers.Count == 0)
-            return "n/a";
-
-        return string.Join("\n", headers.Select(header => $"  {header.Key}: {(IsSensitive(header.Key) ? "[redacted]" : header.Value)}"));
-    }
-
-    private static string FormatDictionary(IReadOnlyDictionary<string, string>? values)
-    {
-        if (values is null || values.Count == 0)
-            return "n/a";
-
-        return string.Join("\n", values.Select(value => $"  {value.Key}: {(IsSensitive(value.Key) ? "[redacted]" : value.Value)}"));
-    }
-
-    private static bool IsSensitive(string key)
-        => key.Contains("authorization", StringComparison.OrdinalIgnoreCase)
-           || key.Contains("cookie", StringComparison.OrdinalIgnoreCase)
-           || key.Contains("secret", StringComparison.OrdinalIgnoreCase)
-           || key.Contains("password", StringComparison.OrdinalIgnoreCase)
-           || key.Contains("token", StringComparison.OrdinalIgnoreCase)
-           || key.Contains("api-key", StringComparison.OrdinalIgnoreCase);
-
-    private static string FormatNotes(string? notes) => string.IsNullOrWhiteSpace(notes) ? string.Empty : $" — {notes}";
 
     private static bool TryParseSagaStatus(string? value, out SagaStatus? status)
     {
@@ -283,4 +201,5 @@ public sealed class NServiceBusOperationsTools
         status = null;
         return false;
     }
+
 }
