@@ -46,9 +46,13 @@ spec:
                 secretKeyRef:
                   name: eventflow-mcp-auth
                   key: api-key
+            - name: Mcp__RateLimitPerMinute
+              value: "120"
+            - name: Mcp__MaxRequestBodyBytes
+              value: "262144"
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: http
             initialDelaySeconds: 3
             periodSeconds: 10

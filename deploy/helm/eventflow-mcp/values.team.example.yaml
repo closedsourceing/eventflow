@@ -7,6 +7,7 @@ image:
 mcp:
   existingSecret: eventflow-mcp-auth
   existingSecretKey: api-key
+  rateLimitPerMinute: 120
 
 ingress:
   enabled: true
@@ -31,3 +32,15 @@ operations:
     # Optional: use this only when ServiceControl is protected by an upstream bearer-token gateway.
     # existingSecret: servicecontrol-reader
     # existingSecretKey: bearer-token
+
+# If EventFlow uses the durable team-owned PostgreSQL projection instead of
+# ServiceControl, switch provider and use a SELECT-only database identity.
+#  provider: PostgresProjection
+#  postgresProjection:
+#    existingSecret: eventflow-postgres-reader
+#    existingSecretKey: connection-string
+
+# Enable only after explicitly allowing your ingress controller and required
+# egress destinations (ServiceControl/PostgreSQL/DNS) for the cluster CNI.
+#networkPolicy:
+#  enabled: true

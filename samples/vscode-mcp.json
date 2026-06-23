@@ -2,13 +2,26 @@
   "servers": {
     "eventflow-local": {
       "type": "stdio",
-      "command": "dotnet",
+      "command": "/Users/igorvuleta/.dotnet/dotnet",
       "args": [
         "run",
         "--project",
         "src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj",
         "--",
         "Operations:Provider=InMemory",
+        "Rag:Provider=InMemory"
+      ]
+    },
+    "eventflow-demo-projection": {
+      "type": "stdio",
+      "command": "/Users/igorvuleta/.dotnet/dotnet",
+      "args": [
+        "run",
+        "--project",
+        "src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj",
+        "--",
+        "Operations:Provider=LocalProjection",
+        "Operations:LocalProjection:Path=${input:eventflowProjectionPath}",
         "Rag:Provider=InMemory"
       ]
     },
@@ -26,6 +39,12 @@
       "type": "promptString",
       "description": "EventFlow MCP API key",
       "password": true
+    },
+    {
+      "id": "eventflowProjectionPath",
+      "type": "promptString",
+      "description": "Absolute path to the local EventFlow demo projection JSON file",
+      "password": false
     }
   ]
 }

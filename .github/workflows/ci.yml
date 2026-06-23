@@ -28,11 +28,20 @@ jobs:
       - name: Build
         run: dotnet build EventFlowMcp.sln --configuration Release --no-restore
 
-      - name: Run ServiceControl contract tests
+      - name: Run automated tests
         run: dotnet test EventFlowMcp.sln --configuration Release --no-build --no-restore
 
-      - name: Pack the local MCP tool
-        run: dotnet pack src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj --configuration Release --no-build --output artifacts
+      - name: Pack distributable projects
+        run: |
+          for project in \
+            src/EventFlowMcp.Abstractions/EventFlowMcp.Abstractions.csproj \
+            src/EventFlowMcp.NServiceBus/EventFlowMcp.NServiceBus.csproj \
+            src/EventFlowMcp.PostgresProjection/EventFlowMcp.PostgresProjection.csproj; do
+            dotnet pack "$project" --configuration Release --no-build --output artifacts
+          done
+          dotnet msbuild src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj /t:Pack \
+            /p:Configuration=Release /p:NoBuild=true /p:Restore=false \
+            /p:BuildProjectReferences=false /p:PackageOutputPath=artifacts
 
       - name: Validate Helm chart
         run: |
@@ -43,3 +52,19 @@ jobs:
 
       - name: Validate Docker image build
         run: docker build --tag eventflow-mcp:ci .
+
+      - name: Smoke test the Docker image
+        shell: bash
+        run: |
+          docker run --detach --rm --name eventflow-mcp-ci \
+            --publish 3001:8080 \
+            --env Mcp__ApiKey=ci-only-key-with-at-least-32-characters \
+            eventflow-mcp:ci
+          trap 'docker logs eventflow-mcp-ci || true; docker stop eventflow-mcp-ci || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3001/readyz; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1

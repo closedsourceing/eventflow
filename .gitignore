@@ -5,6 +5,7 @@ artifacts/
 TestResults/
 .vs/
 .vscode/.ropeproject/
+.eventflow/
 
 # User secrets / env
 .env

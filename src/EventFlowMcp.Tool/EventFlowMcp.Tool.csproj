@@ -9,6 +9,7 @@
     <Authors>Igor Vuleta</Authors>
     <Description>Local stdio MCP server for NServiceBus message tracing, saga inspection, and architecture guidance.</Description>
     <PackageTags>mcp;nservicebus;dotnet;rag;distributed-systems;architecture</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol" Version="1.4.0" />
@@ -18,7 +19,12 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventFlowMcp.Core\EventFlowMcp.Core.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.LocalProjection\EventFlowMcp.LocalProjection.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.PostgresProjection\EventFlowMcp.PostgresProjection.csproj" />
     <ProjectReference Include="..\EventFlowMcp.Rag.Http\EventFlowMcp.Rag.Http.csproj" />
     <ProjectReference Include="..\EventFlowMcp.ServiceControl.Http\EventFlowMcp.ServiceControl.Http.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Link="README.md" />
   </ItemGroup>
 </Project>

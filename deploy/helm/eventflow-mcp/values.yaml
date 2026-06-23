@@ -52,6 +52,8 @@ mcp:
   apiKey: ""
   existingSecret: ""
   existingSecretKey: api-key
+  rateLimitPerMinute: 120
+  maxRequestBodyBytes: 262144
 
 operations:
   # InMemory is a safe local/demo fixture. ServiceControl enables the built-in,
@@ -62,6 +64,11 @@ operations:
     pageSize: 100
     existingSecret: ""
     existingSecretKey: bearer-token
+  # PostgresProjection is a durable, team-owned EventFlow read model. The MCP
+  # deployment should receive a SELECT-only connection string from this secret.
+  postgresProjection:
+    existingSecret: ""
+    existingSecretKey: connection-string
 
 rag:
   provider: InMemory
@@ -88,3 +95,10 @@ autoscaling:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# When enabled, empty ingress/egress lists deny all traffic. Add only the
+# namespace selectors/IP blocks your gateway, ServiceControl and PostgreSQL need.
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []

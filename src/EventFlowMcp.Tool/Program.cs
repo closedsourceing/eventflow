@@ -1,5 +1,7 @@
 using EventFlowMcp.Core;
 using EventFlowMcp.Core.Tools;
+using EventFlowMcp.LocalProjection;
+using EventFlowMcp.PostgresProjection;
 using EventFlowMcp.Rag.Http;
 using EventFlowMcp.ServiceControl.Http;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +24,16 @@ builder.Services.AddEventFlowMcpCore(builder.Configuration);
 if (string.Equals(builder.Configuration["Operations:Provider"], "ServiceControl", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddServiceControlOperationsReader(builder.Configuration);
+}
+
+if (string.Equals(builder.Configuration["Operations:Provider"], "LocalProjection", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddLocalProjectionOperationsReader(builder.Configuration);
+}
+
+if (string.Equals(builder.Configuration["Operations:Provider"], "PostgresProjection", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddPostgresProjectionOperationsReader(builder.Configuration);
 }
 
 if (string.Equals(builder.Configuration["Rag:Provider"], "Http", StringComparison.OrdinalIgnoreCase))

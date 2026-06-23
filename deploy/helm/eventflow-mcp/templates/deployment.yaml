@@ -53,7 +53,14 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.operations.serviceControl.existingSecret }}
-                  key: {{ .Values.operations.serviceControl.existingSecretKey | quote }}
+                key: {{ .Values.operations.serviceControl.existingSecretKey | quote }}
+            {{- end }}
+            {{- if .Values.operations.postgresProjection.existingSecret }}
+            - name: Operations__PostgresProjection__ConnectionString
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.operations.postgresProjection.existingSecret }}
+                  key: {{ .Values.operations.postgresProjection.existingSecretKey | quote }}
             {{- end }}
             - name: Rag__Provider
               value: {{ .Values.rag.provider | quote }}
@@ -66,6 +73,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "eventflow-mcp.mcpSecretName" . }}
                   key: {{ .Values.mcp.existingSecretKey | quote }}
+            - name: Mcp__RateLimitPerMinute
+              value: {{ .Values.mcp.rateLimitPerMinute | quote }}
+            - name: Mcp__MaxRequestBodyBytes
+              value: {{ .Values.mcp.maxRequestBodyBytes | quote }}
             {{- if .Values.rag.http.existingSecret }}
             - name: Rag__Http__ApiKey
               valueFrom:
@@ -75,7 +86,7 @@ spec:
             {{- end }}
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: http
             initialDelaySeconds: 3
             periodSeconds: 10

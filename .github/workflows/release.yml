@@ -37,13 +37,23 @@ jobs:
       - name: Build
         run: dotnet build EventFlowMcp.sln --configuration Release --no-restore
 
-      - name: Pack NuGet tool
+      - name: Pack NuGet packages
         run: |
-          dotnet pack src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj \
-            --configuration Release \
-            --no-build \
-            -p:PackageVersion=${{ steps.version.outputs.value }} \
-            --output artifacts
+          for project in \
+            src/EventFlowMcp.Abstractions/EventFlowMcp.Abstractions.csproj \
+            src/EventFlowMcp.NServiceBus/EventFlowMcp.NServiceBus.csproj \
+            src/EventFlowMcp.PostgresProjection/EventFlowMcp.PostgresProjection.csproj; do
+            dotnet pack "$project" \
+              --configuration Release \
+              --no-build \
+              -p:PackageVersion=${{ steps.version.outputs.value }} \
+              --output artifacts
+          done
+          dotnet msbuild src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj /t:Pack \
+            /p:Configuration=Release /p:NoBuild=true /p:Restore=false \
+            /p:BuildProjectReferences=false \
+            /p:PackageVersion=${{ steps.version.outputs.value }} \
+            /p:PackageOutputPath=artifacts
 
       - uses: actions/upload-artifact@v4
         with:

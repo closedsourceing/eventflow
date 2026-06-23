@@ -1,0 +1,33 @@
+# Optional durable local/team projection. Start with:
+# docker compose -f compose.yaml -f compose.postgres.yaml --profile postgres up --build
+# The MCP server uses a SELECT-only connection string; a trusted endpoint/collector
+# uses a separate writer identity through EventFlowMcp.PostgresProjection.
+services:
+  postgres:
+    image: postgres:17-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_DB: eventflow
+      POSTGRES_USER: eventflow
+      POSTGRES_PASSWORD: ${EVENTFLOW_POSTGRES_PASSWORD:?Set EVENTFLOW_POSTGRES_PASSWORD before starting PostgreSQL}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventflow -d eventflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - eventflow-postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+
+  eventflow-mcp:
+    profiles: ["postgres"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Operations__Provider: PostgresProjection
+      Operations__PostgresProjection__ConnectionString: ${EVENTFLOW_POSTGRES_READER_CONNECTION_STRING:?Set a SELECT-only EventFlow PostgreSQL connection string}
+
+volumes:
+  eventflow-postgres-data:

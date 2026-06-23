@@ -8,6 +8,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventFlowMcp.Core\EventFlowMcp.Core.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.Abstractions\EventFlowMcp.Abstractions.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.LocalProjection\EventFlowMcp.LocalProjection.csproj" />
+    <ProjectReference Include="..\EventFlowMcp.PostgresProjection\EventFlowMcp.PostgresProjection.csproj" />
     <ProjectReference Include="..\EventFlowMcp.Rag.Http\EventFlowMcp.Rag.Http.csproj" />
     <ProjectReference Include="..\EventFlowMcp.ServiceControl.Http\EventFlowMcp.ServiceControl.Http.csproj" />
   </ItemGroup>

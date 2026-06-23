@@ -25,7 +25,7 @@ MCP client (Codex / Claude / Copilot)
                  |
   INServiceBusOperationsReader + IRagRetriever
                  |
-  local fixture | ServiceControl adapter | queue/projection adapter
+  local fixture | local JSON projection | PostgreSQL projection | ServiceControl adapter
 ```
 
 The design intentionally keeps three concerns apart:
@@ -46,6 +46,9 @@ The built-in `InMemory` provider is a safe, realistic fixture for local developm
 src/
   EventFlowMcp.Abstractions/  # Operations and RAG contracts
   EventFlowMcp.Core/          # MCP tools and in-memory local fixture
+  EventFlowMcp.LocalProjection/ # File-backed local development projection adapter
+  EventFlowMcp.NServiceBus/     # Reusable safe NServiceBus pipeline behavior
+  EventFlowMcp.PostgresProjection/ # Durable shared PostgreSQL projection adapter
   EventFlowMcp.Rag.Http/      # Generic HTTP RAG adapter
   EventFlowMcp.Tool/          # Local stdio MCP server / NuGet .NET tool
   EventFlowMcp.Server/        # Shared HTTP MCP server
@@ -60,6 +63,8 @@ samples/                      # MCP client configuration examples
 | Need | Run mode | Operations provider |
 |---|---|---|
 | Explore the tools or develop locally | stdio MCP tool | `InMemory` |
+| Inspect the included NServiceBus demo | stdio MCP tool | `LocalProjection` |
+| Share a durable, team-owned read model | HTTP MCP server | `PostgresProjection` |
 | Let a team use a shared MCP endpoint | Docker or Kubernetes server | `InMemory`, ServiceControl, or a custom reader |
 | Debug a live NServiceBus environment | Shared server close to ServiceControl | `ServiceControl` after contract testing |
 
@@ -76,6 +81,35 @@ dotnet run --project src/EventFlowMcp.Tool/EventFlowMcp.Tool.csproj -- \
 ```
 
 Use `samples/codex-config.toml` or `samples/vscode-mcp.json` as the client configuration starting point.
+
+### Run the complete local NServiceBus demo
+
+The repository includes a small .NET Web API with a hardcoded `order-10042`, NServiceBus command handlers, and an order saga. A demo-only pipeline behavior writes selected operational metadata to a local JSON projection: message/correlation IDs, handler timing, saga transitions, and failures. It does not retain message bodies or arbitrary headers.
+
+The script starts that API and EventFlow locally, submits and approves the demo order, proves MCP can read the real trace and saga, then stops both processes:
+
+```bash
+bash samples/NServiceBusDemo.Api/run-local-demo.sh
+```
+
+It uses NServiceBus Learning Transport, so it does not need a broker. Unlike the `InMemory` fixture, the demo uses EventFlow's `LocalProjection` provider to read the activity actually observed in the NServiceBus pipeline.
+
+To use the persistent API and the Visual Studio Code MCP sample manually, start the API first. It writes to `.eventflow/nservicebus-demo.operations.json` by default. In `samples/vscode-mcp.json`, select `eventflow-demo-projection` and supply the absolute path to that file when VS Code prompts. The `.eventflow` directory is ignored by Git.
+
+### Durable PostgreSQL projection
+
+For a shared team deployment, use `EventFlowMcp.PostgresProjection` rather than the local JSON file. The MCP server receives a **SELECT-only** connection string and is configured with:
+
+```text
+Operations__Provider=PostgresProjection
+Operations__PostgresProjection__ConnectionString=<select-only-connection-string>
+```
+
+Endpoint applications use the companion `EventFlowMcp.NServiceBus` pipeline behavior plus a trusted `IOperationsProjectionWriter`. The writer identity creates the narrow `eventflow` schema, writes handler metadata and saga transitions, and applies retention; it must be distinct from the MCP reader identity. Message bodies are never written, sensitive header/state keys are redacted before persistence, and values are length-limited.
+
+The demo API can exercise the PostgreSQL writer by setting `EventFlow__Projection__Provider=Postgres` and `EventFlow__Projection__Postgres__ConnectionString`. Its normal local JSON mode remains the safest first step. `compose.postgres.yaml` provides an optional PostgreSQL service for local Docker users; it is deliberately not part of the default compose startup.
+
+When registering the behavior in a real endpoint, supply a correlation resolver that returns stable business IDs only—such as `OrderId`—and never customer data, message payloads, or credentials.
 
 Useful prompts with the local fixture:
 
@@ -164,7 +198,7 @@ kubectl apply --dry-run=client -f /tmp/eventflow-mcp.yaml
 
 ## GitHub Actions delivery
 
-The `CI` workflow builds the solution, packages the local MCP tool, validates the Helm chart, and builds the Docker image on every pull request and push to `main`.
+The `CI` workflow builds the solution, runs tests, packages the MCP tool plus NServiceBus/PostgreSQL integration libraries, validates the Helm chart, builds the Docker image, and starts that image for a readiness smoke test on every pull request and push to `main`.
 
 The `Release` workflow runs only when a semantic version tag is pushed, for example:
 
@@ -182,7 +216,7 @@ Configure these repository **secrets** before pushing a release tag:
 | `NUGET_API_KEY` | API key for publishing `EventFlowMcp.Tool` to NuGet.org |
 | `KUBE_CONFIG_DATA` | Base64-encoded kubeconfig; only required for cluster deployment |
 
-The release publishes `<DockerHub username>/eventflow-mcp:vX.Y.Z`, updates the `latest` tag, and pushes the NuGet tool package. Kubernetes deployment is deliberately disabled unless this repository variable is set to `true`:
+The release publishes `<DockerHub username>/eventflow-mcp:vX.Y.Z`, updates the `latest` tag, and pushes the MCP tool plus NServiceBus/PostgreSQL packages to NuGet. Kubernetes deployment is deliberately disabled unless this repository variable is set to `true`:
 
 ```text
 KUBERNETES_DEPLOY_ENABLED=true
@@ -227,6 +261,8 @@ It reads `errors`, `endpoints`, `conversations/{id}`, and `sagas/{id}` only. Ser
 2. An adapter over an existing internal observability projection.
 3. A specialized `INServiceBusOperationsReader` for persistence-specific, live saga data where that access is justified.
 
+`LocalProjection` is intentionally only a local development adapter: a single demo endpoint writes it, and an MCP process reads it. Do not mount it into a shared container or use it for team/production telemetry; use ServiceControl or the durable, access-controlled PostgreSQL projection there.
+
 Do not access ServiceControl’s embedded RavenDB directly. Keep EventFlow read-only until it has authorization, environment scoping, audit logging, PII controls, and human approval for any mutation.
 
 ### ServiceControl contract tests
@@ -262,3 +298,5 @@ The request is a `RagSearchRequest`; the response is a JSON array of `RagResult`
 ## Production readiness checkpoint
 
 Run the ServiceControl contract suite with sanitized responses from the exact ServiceControl deployment and authentication model used by your team. Then prove the Docker and Helm deployments with a non-production ServiceControl instance before creating a release tag.
+
+For a shared deployment, EventFlow now refuses to start in `Production` without an MCP API key, limits MCP requests and request size, adds no-store/security headers, exposes `/healthz` for liveness and `/readyz` for the operations-source readiness check, and emits a low-cardinality request metric plus audit-safe request-completion logs. Configure TLS and identity-aware access at the ingress/gateway; the Helm chart includes an opt-in deny-by-default NetworkPolicy template that must be tailored to the cluster's ingress, DNS and ServiceControl/PostgreSQL routes.

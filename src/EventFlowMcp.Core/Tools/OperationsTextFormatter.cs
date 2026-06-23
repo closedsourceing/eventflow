@@ -40,7 +40,11 @@ internal static class OperationsTextFormatter
         var relationship = activity.RelatedToMessageId is null ? string.Empty : $" ← {activity.RelatedToMessageId}";
         var saga = activity.SagaInstanceId is null ? string.Empty : $"; saga={activity.SagaInstanceId}";
         var failure = activity.FailureId is null ? string.Empty : $"; failure={activity.FailureId}";
-        return $"- {activity.OccurredAt:u} [{activity.Status}] {activity.Intent} {activity.MessageType}: {activity.SendingEndpoint ?? "external"} → {activity.ReceivingEndpoint} ({activity.MessageId}){relationship}{saga}{failure}";
+        var handler = activity.Headers is not null
+                      && activity.Headers.TryGetValue("EventFlow.HandlerType", out var handlerType)
+            ? $"; handler={handlerType}"
+            : string.Empty;
+        return $"- {activity.OccurredAt:u} [{activity.Status}] {activity.Intent} {activity.MessageType}: {activity.SendingEndpoint ?? "external"} → {activity.ReceivingEndpoint} ({activity.MessageId}){relationship}{saga}{failure}{handler}";
     }
 
     internal static string SagaSummary(SagaInstance saga)

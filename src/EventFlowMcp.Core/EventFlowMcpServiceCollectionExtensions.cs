@@ -16,11 +16,13 @@ public static class EventFlowMcpServiceCollectionExtensions
     {
         var operationsProvider = configuration["Operations:Provider"] ?? "InMemory";
         if (!string.Equals(operationsProvider, "InMemory", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(operationsProvider, "ServiceControl", StringComparison.OrdinalIgnoreCase))
+            && !string.Equals(operationsProvider, "ServiceControl", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(operationsProvider, "LocalProjection", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(operationsProvider, "PostgresProjection", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
                 $"Operations provider '{operationsProvider}' is not registered. " +
-                "Use InMemory or ServiceControl, or register an INServiceBusOperationsReader implementation.");
+                "Use InMemory, LocalProjection, PostgresProjection, or ServiceControl, or register an INServiceBusOperationsReader implementation.");
         }
 
         // A safe fallback makes the MCP usable locally without ServiceControl and without production data.
